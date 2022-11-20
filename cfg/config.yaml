@@ -1,0 +1,37 @@
+model:
+  model_name: resnet
+  arch: resnet50
+  dropout: 0
+  pretrained: True
+  resume_ckpt: False
+
+train:
+  seed: 123
+  model_type: "resunet" # ["resnet50, resunet"]
+  method: "erm" # ["erm", "seg", "hm_seg"]
+  seg_resolution: 512
+  binary_weight: 0
+  contrastive_weight: 0.0 
+  epochs: 100
+  batch_size: 64
+  lr: 1e-5
+  wd: 0
+  valid_split: val
+  gaze_split: True
+  labeled_ratio: 1.0
+  model_id: null
+  
+dataset:
+  source: "cxr_p" # options: {"cxr_p", "reflax"}
+  sample_ratio: 1
+  num_workers: 4
+  id_column: "id"
+  input_column: "input"
+  augmentation: True
+
+
+wandb:
+  project: domino
+  group: ''
+  log_model: False
+
