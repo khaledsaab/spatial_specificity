@@ -7,3 +7,4 @@ dosma
 pytorch-lightning
 wandb
 segmentation-models-pytorch
+albumentations

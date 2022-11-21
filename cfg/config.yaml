@@ -7,18 +7,14 @@ model:
 
 train:
   seed: 123
-  model_type: "resunet" # ["resnet50, resunet"]
-  method: "erm" # ["erm", "seg", "hm_seg"]
-  seg_resolution: 512
+  model_type: "resnet50" # ["resnet50, resunet"]
+  method: "erm" # ["erm", "seg"]
   binary_weight: 0
-  contrastive_weight: 0.0 
   epochs: 100
-  batch_size: 64
-  lr: 1e-5
+  batch_size: 16
+  lr: 5e-4
   wd: 0
   valid_split: val
-  gaze_split: True
-  labeled_ratio: 1.0
   model_id: null
   
 dataset:

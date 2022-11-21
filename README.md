@@ -36,13 +36,15 @@ Package dependencies are listed in [requirements.txt](./requirements.txt).
 
 The code for training models is based on [Pytorch-Lightning](https://pytorch-lightning.readthedocs.io/en/latest/). Hyperparameters and config values are defined and passed using [Hydra](https://hydra.cc/docs/intro/).
 
-An example experiment is:
+For example, to run the ResNet-50 ERM model:
 ```
 python -m train train.method=erm train.model_type=resnet50
 ```
+And to run the UNet Segmentation model:
 
-To run the segmentation model, change method to `train.method=seg`.
-
+```
+python -m train train.method=seg train.model_type=resunet
+```
 ### Evaluation
 
 After a model trains, you can load the model and evaluate its performance on different subgroups. Check out our notebook `notebooks/cxr_evaluation.ipynb` for an example.

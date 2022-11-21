@@ -1,5 +1,5 @@
 import os
-from typing import List, Mapping, Sequence, Union
+from typing import List, Sequence, Union
 
 import meerkat as mk
 import numpy as np
@@ -17,7 +17,7 @@ from torchvision import transforms as transforms
 from torchvision.models.segmentation import fcn_resnet50
 
 from src.modeling import ResNet
-from src.utils import PredLogger, compute_dice_score, get_save_dir, dictconfig_to_dict, DOMINO_DIR
+from src.utils import PredLogger, compute_dice_score, get_save_dir, dictconfig_to_dict
 
 
 ROOT_DIR = "/home/ksaab/Documents/domino/domino/data/cxr"
@@ -33,7 +33,6 @@ class Classifier(pl.LightningModule):
             "seg" in config["train"]["method"]
             or config["train"]["method"] == "detection"
         )
-        self.seg_resolution = config["train"]["seg_resolution"]
         self.model_type = config["train"]["model_type"]
         print(f"Model type: {self.model_type}")
 
@@ -332,9 +331,6 @@ def train_model(
 def score(
     model: nn.Module,
     dp: mk.DataPanel,
-    mimic_model: nn.Module = None,
-    layers: Mapping[str, nn.Module] = None,
-    reduction_fns: Sequence[callable] = None,
     input_column: str = "input",
     pbar: bool = True,
     device: int = 0,
@@ -343,46 +339,14 @@ def score(
     **kwargs,
 ):
     model.to(device).eval()
-    if mimic_model:
-        mimic_model.to(device).eval()
-
-    class ActivationExtractor:
-        """Class for extracting activations a targetted intermediate layer"""
-
-        def __init__(self, reduction_fn: callable = None):
-            self.activation = None
-            self.reduction_fn = reduction_fn
-
-        def add_hook(self, module, input, output):
-            if self.reduction_fn is not None:
-                output = self.reduction_fn(output)
-            self.activation = output
-
-    layer_to_extractor = {}
-
-    if layers is not None:
-        for name, layer in layers.items():
-            if reduction_fns is not None:
-                for reduction_fn in reduction_fns:
-                    extractor = ActivationExtractor(reduction_fn=reduction_fn)
-                    layer.register_forward_hook(extractor.add_hook)
-                    layer_to_extractor[name] = extractor
-                    # layer_to_extractor[f"{name}_{reduction_fn.__name__}"] = extractor
-            else:
-                extractor = ActivationExtractor()
-                layer.register_forward_hook(extractor.add_hook)
-                layer_to_extractor[name] = extractor
 
     @torch.no_grad()
     def _score(batch: mk.DataPanel):
-        # x = batch[input_column].data.to(device)
         x = torch.stack([entry[0].data.to(device) for entry in batch["input"]])
         out = model(x)  # Run forward pass
         if segmentation:
             seg_out = model.fc(out)
             seg_out_ = seg_out.softmax(1)
-            # flatten last 2 dim so outs = (batch size, num classes, HxW)
-            # out, _ = seg_out_.view(seg_out.shape[0], seg_out.shape[1], -1).max(-1)
             out = seg_out_.view(seg_out.shape[0], seg_out.shape[1], -1).mean(-1)
 
         if return_segmentations:
@@ -393,18 +357,10 @@ def score(
                 "seg_output": ClassificationOutputColumn(
                     logits=seg_out.cpu(), multi_label=False
                 ),
-                **{
-                    name: extractor.activation.cpu()
-                    for name, extractor in layer_to_extractor.items()
-                },
             }
 
         return {
             "output": ClassificationOutputColumn(logits=out.cpu(), multi_label=False),
-            **{
-                name: extractor.activation.cpu()
-                for name, extractor in layer_to_extractor.items()
-            },
         }
 
     dp = dp.update(

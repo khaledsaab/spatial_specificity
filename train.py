@@ -22,9 +22,7 @@ def train(
     if dataset_cfg["source"] == "cxr_p":
         dp = build_cxr_dp(
             root_dir="/media/nvme_data/siim",
-            tube_mask=cfg["train"]["gaze_split"],
             segmentation=segmentation,
-            seg_resolution=train_cfg["seg_resolution"],
             augmentation=dataset_cfg["augmentation"],
             detection=detection,
         )

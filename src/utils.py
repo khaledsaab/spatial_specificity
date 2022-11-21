@@ -6,7 +6,7 @@ import numpy as np
 import os
 import meerkat as mk
 
-DOMINO_DIR = "/home/ksaab/Documents/domino"
+ROOT_DIR = "/home/ksaab/Documents/spatial_specificity"
 
 
 class PredLogger(Metric):
@@ -81,18 +81,12 @@ def compute_dice_score(outs, targets):
 
 
 def get_save_dir(config):
-    gaze_split = config["train"]["gaze_split"]
-    #target = config["dataset"]["target_column"]
     method = config["train"]["method"]
 
     lr = config["train"]["lr"]
     wd = config["train"]["wd"]
     dropout = config["model"]["dropout"]
-    save_dir = f"{DOMINO_DIR}/results/method_{method}/gaze_split_{gaze_split}/lr_{lr}/wd_{wd}/dropout_{dropout}"
-
-    if "erm" not in config["train"]["method"]:
-        cw = config["train"]["contrastive_weight"]
-        save_dir += f"/cw_{cw}"
+    save_dir = f"{ROOT_DIR}/results/method_{method}/lr_{lr}/wd_{wd}/dropout_{dropout}"
 
 
     seed = config["train"]["seed"]
