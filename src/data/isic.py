@@ -24,7 +24,7 @@ def build_isic_dp(data_dir: str = "/media/nvme_data/isic", seed: int = 1):
     dp_val = mk.DataPanel.from_pandas(labels_df)
     dp_val["split"] = ["val"] * len(dp_val)
 
-    dp = dp.append(dp_val)  # , how="left", on="image")
+    dp = dp.append(dp_val) 
 
     # load the test set
     labels_pth = os.path.join(data_dir, f"trap-sets/isic_annotated_test{seed}.csv")
@@ -36,8 +36,6 @@ def build_isic_dp(data_dir: str = "/media/nvme_data/isic", seed: int = 1):
     dp = dp.append(dp_test)
 
     dp["id"] = dp["image"].to_lambda(fn=lambda x: x.split(".")[0])
-
-    # dp = dp.lz[~dp["image"].duplicated()]
 
     # set up images and seg masks
     dp["input"] = dp["id"].to_lambda(
@@ -52,7 +50,7 @@ def build_isic_dp(data_dir: str = "/media/nvme_data/isic", seed: int = 1):
     dp["segmentation_target"] = dp[["id", "target"]].to_lambda(
         fn=lambda x: seg_loader(x, data_dir)
     )
-
+    
     return dp
 
 

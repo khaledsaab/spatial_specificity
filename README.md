@@ -55,6 +55,9 @@ After a model trains, you can load the model and evaluate its performance on dif
     - CXR images/masks: the public SIIM-ACR Pneumothorax dataset was used, which can be found here: https://www.kaggle.com/c/siim-acr-pneumothorax-segmentation. 
     - **Tube labels**: To evaluate robustness to the chest tube spurious feature, we hand labeled 1,951 CXRs for tubes, which we are publicly releasing. The labels can be found in the file `cxr_tube_dict.pkl`, which is a dictionary where the keys are the CXR file names, and the values are the binary labels indicating the existence of a tube in the CXR.
 
+- ISIC Skin Lesion Data
+    - Images, subgroup labels, and splits can be found here: https://github.com/alceubissoto/debiasing-skin.
+
 
 
 ## Citation

@@ -15,10 +15,6 @@ from albumentations.pytorch.transforms import ToTensorV2
 from dosma import DicomReader
 from meerkat import DataPanel
 from PIL import Image
-from torchvision.models import resnet50
-
-from src.task import score
-import segmentation_models_pytorch as smp
 
 
 ROOT_DIR = "/home/ksaab/Documents/spatial_specificity/src/data"
@@ -57,61 +53,6 @@ def masks_to_boxes(masks: torch.Tensor) -> torch.Tensor:
         bounding_boxes[index, 3] = torch.max(y)
 
     return bounding_boxes
-
-
-def get_cxr_activations(
-    dp: DataPanel,
-    model_pth: str,
-    segmentation: bool = False,
-    return_segmentations: bool = False,
-    batch_size: int = 32,
-    device: int = 0,
-):
-
-    if segmentation:
-        model = smp.Unet(
-                "se_resnext50_32x4d",
-                encoder_weights="imagenet",
-                activation=None,
-                # segmentation_head=True,
-                in_channels=3,
-                classes=2,
-            )
-        model.fc = model.segmentation_head
-        model.segmentation_head = nn.Identity()
-        # model = fcn_resnet50(
-        #         pretrained=False,
-        #         num_classes=2,
-        #     )
-        # model.fc = model.classifier
-        # model.classifier = nn.Identity()
-        model_state_dict = torch.load(model_pth)["state_dict"]
-        model_state_dict = {
-            k.split("model.")[-1]: v
-            for k, v in model_state_dict.items()
-        }
-        model.load_state_dict(model_state_dict)
-    else:
-        model = resnet50()
-        d = model.fc.in_features
-        model.fc = nn.Sequential(nn.Dropout(0),nn.Linear(d, 2))
-        model_state_dict = torch.load(model_pth)["state_dict"]
-        model_state_dict = {
-            k.split("model.")[-1]: v
-            for k, v in model_state_dict.items()
-            if k in model_state_dict
-        }
-        model.load_state_dict(model_state_dict)
-        
-    act_dp = score(
-        model=model,
-        dp=dp,
-        device=device,
-        segmentation=segmentation,
-        return_segmentations=return_segmentations,
-        batch_size=batch_size,
-    )
-    return act_dp
 
 
 

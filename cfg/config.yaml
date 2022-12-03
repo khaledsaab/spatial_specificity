@@ -6,8 +6,8 @@ model:
   resume_ckpt: False
 
 train:
-  seed: 123
-  model_type: "resnet50" # ["resnet50, resunet"]
+  seed: 1 # seeds for isic need to be in [1,5]
+  model_type: "resunet" # ["resnet50, resunet"]
   method: "erm" # ["erm", "seg"]
   binary_weight: 0
   epochs: 100
@@ -18,7 +18,7 @@ train:
   model_id: null
   
 dataset:
-  source: "cxr_p" # options: {"cxr_p", "reflax"}
+  source: "cxr_p" # options: {"cxr_p", "isic"}
   sample_ratio: 1
   num_workers: 4
   id_column: "id"

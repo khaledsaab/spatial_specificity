@@ -227,8 +227,8 @@ def train_model(
         "seg" in config["train"]["method"] or config["train"]["method"] == "detection"
     )
 
-    train_mask = np.array(dp["split"].data == train_split)
-    val_mask = np.array(dp["split"].data == valid_split)
+    train_mask = np.array(dp["split"].data) == train_split
+    val_mask = np.array(dp["split"].data) == valid_split
 
     dp = mk.DataPanel.from_batch(
         {
