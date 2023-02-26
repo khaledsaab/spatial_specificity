@@ -5,6 +5,7 @@ from torchmetrics import Metric
 import numpy as np
 import os
 import meerkat as mk
+from src.modeling import ResNet, DenseNet
 
 ROOT_DIR = "/home/ksaab/Documents/spatial_specificity"
 
@@ -83,10 +84,11 @@ def compute_dice_score(outs, targets):
 def get_save_dir(config):
     method = config["train"]["method"]
 
+    source = config["dataset"]["source"]
     lr = config["train"]["lr"]
     wd = config["train"]["wd"]
     dropout = config["model"]["dropout"]
-    save_dir = f"{ROOT_DIR}/results/method_{method}/lr_{lr}/wd_{wd}/dropout_{dropout}"
+    save_dir = f"{ROOT_DIR}/results/dataset_{source}/method_{method}/lr_{lr}/wd_{wd}/dropout_{dropout}"
 
 
     seed = config["train"]["seed"]
@@ -108,7 +110,7 @@ def dictconfig_to_dict(d):
 
 from torchvision.models import resnet50
 
-from src.task import score
+#from src.task import score
 import segmentation_models_pytorch as smp
 from meerkat import DataPanel
 import torch.nn as nn
@@ -148,6 +150,7 @@ def get_activations(
         }
         model.load_state_dict(model_state_dict)
     else:
+        #model = DenseNet(num_classes=2,pretrained=False)
         model = resnet50()
         d = model.fc.in_features
         model.fc = nn.Sequential(nn.Dropout(0),nn.Linear(d, 2))
@@ -168,3 +171,50 @@ def get_activations(
         batch_size=batch_size,
     )
     return act_dp
+
+
+from meerkat.nn import ClassificationOutputColumn
+
+def score(
+    model: nn.Module,
+    dp: mk.DataPanel,
+    input_column: str = "input",
+    pbar: bool = True,
+    device: int = 0,
+    segmentation: bool = False,
+    return_segmentations: bool = False,
+    **kwargs,
+):
+    model.to(device).eval()
+
+    @torch.no_grad()
+    def _score(batch: mk.DataPanel):
+        x = torch.stack([entry[0].data.to(device) for entry in batch["input"]])
+        out = model(x)  # Run forward pass
+        if segmentation:
+            seg_out = model.fc(out)
+            seg_out_ = seg_out.softmax(1)
+            out = seg_out_.view(seg_out.shape[0], seg_out.shape[1], -1).mean(-1)
+
+        if return_segmentations:
+            return {
+                "output": ClassificationOutputColumn(
+                    logits=out.cpu(), multi_label=False
+                ),
+                "seg_output": ClassificationOutputColumn(
+                    logits=seg_out.cpu(), multi_label=False
+                ),
+            }
+
+        return {
+            "output": ClassificationOutputColumn(logits=out.cpu(), multi_label=False),
+        }
+
+    dp = dp.update(
+        function=_score,
+        is_batched_fn=True,
+        pbar=pbar,
+        input_columns=[input_column],
+        **kwargs,
+    )
+    return dp

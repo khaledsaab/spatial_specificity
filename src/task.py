@@ -8,7 +8,6 @@ import torch
 import torch.nn as nn
 import torchmetrics
 import wandb
-from meerkat.nn import ClassificationOutputColumn
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from torch.utils.data import DataLoader, RandomSampler
@@ -16,7 +15,7 @@ from torchmetrics.functional import dice_score
 from torchvision import transforms as transforms
 from torchvision.models.segmentation import fcn_resnet50
 
-from src.modeling import ResNet
+from src.modeling import ResNet, DenseNet
 from src.utils import PredLogger, compute_dice_score, get_save_dir, dictconfig_to_dict
 
 
@@ -96,12 +95,21 @@ class Classifier(pl.LightningModule):
                 raise ValueError(f"{self.model_type} not implemented.")
 
         else:
-            self.model = ResNet(
-                num_classes=num_classes,
-                arch=model_cfg["arch"],
-                dropout=model_cfg["dropout"],
-                pretrained=model_cfg["pretrained"],
-            )
+            if self.model_type == "resnet50":
+                self.model = ResNet(
+                    num_classes=num_classes,
+                    arch=model_cfg["arch"],
+                    dropout=model_cfg["dropout"],
+                    pretrained=model_cfg["pretrained"],
+                )
+            elif self.model_type == "densenet101":
+                self.model = DenseNet(
+                    num_classes=num_classes,
+                    pretrained=model_cfg["pretrained"],
+                )
+            else:
+                raise ValueError(f"{self.model_type} not implemented.")
+            
 
     def forward(self, x):
         return self.model(x)
@@ -326,48 +334,3 @@ def train_model(
     trainer.fit(model, train_dl, valid_dl)
     wandb.finish()
     return model
-
-
-def score(
-    model: nn.Module,
-    dp: mk.DataPanel,
-    input_column: str = "input",
-    pbar: bool = True,
-    device: int = 0,
-    segmentation: bool = False,
-    return_segmentations: bool = False,
-    **kwargs,
-):
-    model.to(device).eval()
-
-    @torch.no_grad()
-    def _score(batch: mk.DataPanel):
-        x = torch.stack([entry[0].data.to(device) for entry in batch["input"]])
-        out = model(x)  # Run forward pass
-        if segmentation:
-            seg_out = model.fc(out)
-            seg_out_ = seg_out.softmax(1)
-            out = seg_out_.view(seg_out.shape[0], seg_out.shape[1], -1).mean(-1)
-
-        if return_segmentations:
-            return {
-                "output": ClassificationOutputColumn(
-                    logits=out.cpu(), multi_label=False
-                ),
-                "seg_output": ClassificationOutputColumn(
-                    logits=seg_out.cpu(), multi_label=False
-                ),
-            }
-
-        return {
-            "output": ClassificationOutputColumn(logits=out.cpu(), multi_label=False),
-        }
-
-    dp = dp.update(
-        function=_score,
-        is_batched_fn=True,
-        pbar=pbar,
-        input_columns=[input_column],
-        **kwargs,
-    )
-    return dp
